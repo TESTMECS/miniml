@@ -1,2 +1,2 @@
-fib = lambda m -> if m < 2 then m else fib(m - 1) + fib(m - 2)
-main = lambda -> print(fib(10))
+sq = lambda n -> n * n 
+main = lambda -> print(sq(10))

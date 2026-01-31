@@ -224,7 +224,7 @@ Lambda.eval = function(self, env, args)
 	return self.expr:eval(new_env)
 end
 Lambda.compile = function(self, unifier)
-	local typ = unifier(self.expr.typ):to_c()
+	local typ = unifier(self.expr.typ):to_c() ---@diagnostic disable-line
 	local compiled = self.expr:compile(unifier)
 	local body = string.format("return %s;", compiled)
 
