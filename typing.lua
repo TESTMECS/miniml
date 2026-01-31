@@ -274,10 +274,10 @@ end
 
 local function unify_variable(v, typ, subst)
 	if subst[v.name] then
-		return unify(subst[v.name], typ, subst)
+		return Unify(subst[v.name], typ, subst)
 	end
 	if getmetatable(typ) == TypeVar and subst[typ.name] then
-		return unify(v, subst[typ.name], subst)
+		return Unify(v, subst[typ.name], subst)
 	end
 	if occurs_check(v, typ, subst) then
 		return nil
@@ -286,7 +286,7 @@ local function unify_variable(v, typ, subst)
 	return subst
 end
 
-function unify(x, y, subst)
+function Unify(x, y, subst)
 	if not subst then
 		return nil
 	end
@@ -304,9 +304,9 @@ function unify(x, y, subst)
 		if #x.argtypes ~= #y.argtypes then
 			return nil
 		end
-		subst = unify(x.rettype, y.rettype, subst)
+		subst = Unify(x.rettype, y.rettype, subst)
 		for i = 1, #x.argtypes do
-			subst = unify(x.argtypes[i], y.argtypes[i], subst)
+			subst = Unify(x.argtypes[i], y.argtypes[i], subst)
 		end
 		return subst
 	end
@@ -316,7 +316,7 @@ end
 local function unify_equations(eqs)
 	local subst = {}
 	for _, eq in ipairs(eqs) do
-		subst = unify(eq.left, eq.right, subst)
+		subst = Unify(eq.left, eq.right, subst)
 		if not subst then
 			break
 		end
