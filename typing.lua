@@ -32,7 +32,6 @@ Int.__index = Int
 Int.new = function()
 	return setmetatable({}, Int)
 end
-
 -- Bool ----------------------------------------------------
 ---@class Bool: Type
 ---@field new fun(): Bool
@@ -42,7 +41,6 @@ Bool.__index = Bool
 Bool.new = function()
 	return setmetatable({}, Bool)
 end
-
 -- Func ----------------------------------------------------
 ---@class Func: Type
 ---@field argtypes Type[]
@@ -97,7 +95,7 @@ Func.to_c = function(self)
 end
 
 -- TypeVar -------------------------------------------------
----@class TypeVar: Type
+---@class TypeVar:Type
 local TypeVar = setmetatable({}, Type)
 TypeVar.__index = TypeVar
 TypeVar.new = function(name)
@@ -131,7 +129,6 @@ end
 -- Assign type variables ----------------------------------
 local function assign_typenames(node, symtab)
 	symtab = symtab or {}
-
 	if getmetatable(node) == ast.Id then
 		if symtab[node.name] then
 			node.typ = symtab[node.name]
@@ -340,6 +337,7 @@ local function apply_unifier(typ, subst)
 end
 
 -- Get final expression type after unification -----------------
+---
 local get_expression_type = function(typ, unifier)
 	if not unifier then
 		return typ
