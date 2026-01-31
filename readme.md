@@ -2,11 +2,11 @@
 - Toy MiniML interpreter generating C code
 # Credits
 [@hellerve - Python Implementation](https://github.com/hellerve-pl-experiments/microml)
-- Essentially the same idea but in Lua.
+- Essentially a copy of the idea but in Lua.
 ## Deps 
-- Lpeg
-- GCC
-- Tested with `LuaJIT 2.1.1741730670` .
+- Lpeg - lexer.lua
+- GCC - compile.lua
+- Ran with `LuaJIT 2.1.1741730670` .
 ## Example
 ```lua
 local compiler = require("compile")
