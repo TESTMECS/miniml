@@ -9,17 +9,13 @@ local exceptions = require("exceptions")
 ---@field to_c fun(self: Type): string
 local Type = {}
 Type.__index = Type
-
 Type.__tostring = function(self)
 	return self.name
 end
-
 Type.__repr = Type.__tostring
-
 Type.equals = function(self, other)
 	return getmetatable(self) == getmetatable(other)
 end
-
 Type.to_c = function(self)
 	return self.c
 end

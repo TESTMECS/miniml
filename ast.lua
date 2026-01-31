@@ -1,5 +1,5 @@
 local exceptions = require("exceptions")
-
+local unpack = unpack or table.unpack ---@diagnostic disable-line
 -- Base node ------------------------------------------------
 ---@class Node
 ---@field children Node[]
@@ -7,8 +7,7 @@ local exceptions = require("exceptions")
 ---@field eval fun(self:Node, env:any):any
 local Node = {}
 Node.__index = Node
-
-function Node:visit_children(f)
+Node.visit_children = function(self, f)
 	if not self.children then
 		return
 	end
@@ -16,77 +15,60 @@ function Node:visit_children(f)
 		f(c)
 	end
 end
-
 -- Values --------------------------------------------------
 ---@class Val:Node
 ---@field value any
 local Val = setmetatable({}, Node)
 Val.__index = Val
-
-function Val.new(value)
+Val.new = function(value)
 	return setmetatable({ value = value }, Val)
 end
-
-function Val:__tostring()
+Val.__tostring = function(self)
 	return tostring(self.value)
 end
-
-function Val:compile(_unifier)
+Val.compile = function(self, _unifier)
 	return tostring(math.floor(self.value))
 end
-
 -- Int -----------------------------------------------------
 ---@class IntVal:Val
 ---@field value number
 local Int = setmetatable({}, Val)
 Int.__index = Int
-
-function Int.new(v)
+Int.new = function(v)
 	return setmetatable({ value = v }, Int)
 end
-
-function Int:eval(_env)
+Int.eval = function(self, _env)
 	return math.floor(self.value)
 end
-
 -- Bool ----------------------------------------------------
 ---@class BoolVal:Val
 ---@field value boolean
 local Bool = setmetatable({}, Val)
 Bool.__index = Bool
-
-function Bool.new(v)
+Bool.new = function(v)
 	return setmetatable({ value = v }, Bool)
 end
-
-function Bool:eval(env)
+Bool.eval = function(self, _env)
 	return not not self.value
 end
-
 -- Id ------------------------------------------------------
 ---@class Id:Node
 ---@field name string
 local Id = setmetatable({}, Node)
 Id.__index = Id
-
-function Id.new(name)
+Id.new = function(name)
 	return setmetatable({ name = name }, Id)
 end
-
-function Id:__tostring()
+Id.__tostring = function(self)
 	return self.name
 end
-
-function Id:compile(_unifier)
+Id.compile = function(self, _unifier)
 	return self.name
 end
-
-function Id:eval(env)
+Id.eval = function(self, env)
 	return env[self.name]
 end
-
 -- Operators ----------------------------------------------
-
 local OPERATORS = {
 	["+"] = function(a, b)
 		return a + b
@@ -116,7 +98,6 @@ local OPERATORS = {
 		return a == b
 	end,
 }
-
 -- Op ------------------------------------------------------
 ---@class Op:Node
 ---@field op string
@@ -124,8 +105,7 @@ local OPERATORS = {
 ---@field right Node
 local Op = setmetatable({}, Node)
 Op.__index = Op
-
-function Op.new(op, left, right)
+Op.new = function(op, left, right)
 	return setmetatable({
 		op = op,
 		left = left,
@@ -133,51 +113,43 @@ function Op.new(op, left, right)
 		children = { left, right },
 	}, Op)
 end
-
-function Op:__tostring()
+Op.__tostring = function(self)
 	return ("(%s %s %s)"):format(self.left, self.op, self.right)
 end
-
-function Op:compile(unifier)
+Op.compile = function(self, unifier)
 	return ("%s %s %s"):format(self.left:compile(unifier), self.op, self.right:compile(unifier))
 end
-
-function Op:eval(env)
+Op.eval = function(self, env)
 	return OPERATORS[self.op](self.left:eval(env), self.right:eval(env))
 end
-
 -- App -----------------------------------------------------
 ---@class App:Node
 ---@field f Node
 ---@field args Node[]
 local App = setmetatable({}, Node)
 App.__index = App
-
-function App.new(f, args)
+App.new = function(f, args)
 	return setmetatable({
 		f = f,
 		args = args or {},
 		children = { f, unpack(args or {}) },
 	}, App)
 end
-
-function App:__tostring()
+App.__tostring = function(self)
 	local parts = {}
 	for i, a in ipairs(self.args) do
 		parts[i] = tostring(a)
 	end
 	return ("%s(%s)"):format(self.f, table.concat(parts, ", "))
 end
-
-function App:compile(unifier)
+App.compile = function(self, unifier)
 	local parts = {}
 	for i, a in ipairs(self.args) do
 		parts[i] = a:compile(unifier)
 	end
 	return ("%s(%s)"):format(self.f, table.concat(parts, ", "))
 end
-
-function App:eval(env)
+App.eval = function(self, env)
 	local f = self.f:eval(env)
 	local args = {}
 	for i, a in ipairs(self.args) do
@@ -185,7 +157,6 @@ function App:eval(env)
 	end
 	return f:eval(env, args)
 end
-
 -- If ------------------------------------------------------
 ---@class If:Node
 ---@field ifx Node
@@ -193,8 +164,7 @@ end
 ---@field elsex Node
 local If = setmetatable({}, Node)
 If.__index = If
-
-function If.new(cond, thenx, elsex)
+If.new = function(cond, thenx, elsex)
 	return setmetatable({
 		ifx = cond,
 		thenx = thenx,
@@ -202,22 +172,18 @@ function If.new(cond, thenx, elsex)
 		children = { cond, thenx, elsex },
 	}, If)
 end
-
-function If:__tostring()
+If.__tostring = function(self)
 	return ("(if %s then %s else %s)"):format(self.ifx, self.thenx, self.elsex)
 end
-
-function If:compile(unifier)
+If.compile = function(self, unifier)
 	return ("%s ? %s : %s"):format(self.ifx:compile(unifier), self.thenx:compile(unifier), self.elsex:compile(unifier))
 end
-
-function If:eval(env)
+If.eval = function(self, env)
 	if self.ifx:eval(env) then
 		return self.thenx:eval(env)
 	end
 	return self.elsex:eval(env)
 end
-
 -- Lambda --------------------------------------------------
 ---@class Lambda:Node
 ---@field argnames string[]
@@ -225,8 +191,7 @@ end
 ---@field argtypes any[]
 local Lambda = setmetatable({}, Node)
 Lambda.__index = Lambda
-
-function Lambda.new(argnames, expr)
+Lambda.new = function(argnames, expr)
 	return setmetatable({
 		argnames = argnames,
 		expr = expr,
@@ -234,8 +199,7 @@ function Lambda.new(argnames, expr)
 		argtypes = nil,
 	}, Lambda)
 end
-
-function Lambda:__tostring()
+Lambda.__tostring = function(self)
 	local arg_str = ""
 	for i, arg in ipairs(self.argnames) do
 		if i > 1 then
@@ -245,12 +209,10 @@ function Lambda:__tostring()
 	end
 	return ("(lambda %s -> %s)"):format(arg_str, self.expr)
 end
-
-function Lambda:eval(env, args)
+Lambda.eval = function(self, env, args)
 	if #args ~= #self.argnames then
 		error(exceptions.MLEvalException.new(("lambda expected %d args, got %d"):format(#self.argnames, #args)))
 	end
-
 	local new_env = {}
 	for k, v in pairs(env) do
 		new_env[k] = v
@@ -260,8 +222,7 @@ function Lambda:eval(env, args)
 	end
 	return self.expr:eval(new_env)
 end
-
-function Lambda:compile(_unifier)
+Lambda.compile = function(self, _unifier)
 	local args = {}
 	for i, name in ipairs(self.argnames) do
 		args[i] = "int " .. name
@@ -276,31 +237,26 @@ function Lambda:compile(_unifier)
 	end
 	return ("(%s)(%s)"):format(rettype, argstr)
 end
-
 -- Decl ----------------------------------------------------
 ---@class Decl:Node
 ---@field name string
 ---@field expr Node
 local Decl = setmetatable({}, Node)
 Decl.__index = Decl
-
-function Decl.new(name, expr)
+Decl.new = function(name, expr)
 	return setmetatable({
 		name = name,
 		expr = expr,
 		children = { expr },
 	}, Decl)
 end
-
-function Decl:__tostring()
+Decl.__tostring = function(self)
 	return ("%s = %s"):format(self.name, self.expr)
 end
-
-function Decl:eval(env)
+Decl.eval = function(self, env)
 	env[self.name] = self.expr
 end
-
-function Decl:compile(unifier)
+Decl.compile = function(self, unifier)
 	if getmetatable(self.expr) == Lambda then
 		-- Generate a proper C function with arguments
 		local args = {}
@@ -320,9 +276,6 @@ function Decl:compile(unifier)
 		return ("int %s() {\n    return %s;\n}"):format(self.name, self.expr:compile(unifier))
 	end
 end
-
--- exports -------------------------------------------------
-
 return {
 	Node = Node,
 	Val = Val,

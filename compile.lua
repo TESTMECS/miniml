@@ -13,7 +13,7 @@ int print(int in) {
 }
 ]]
 ---@class Compiler
----@field interactive boolean
+---@field interactive boolean: for printing type info
 ---@field p Parser
 ---@field equations table
 ---@field symtab table
@@ -22,8 +22,7 @@ int print(int in) {
 ---@field unifier table
 local Compiler = {}
 Compiler.__index = Compiler
-
-function Compiler.new(interactive)
+Compiler.new = function(interactive)
 	return setmetatable({
 		interactive = interactive ~= false,
 		p = parser.new(),
@@ -34,9 +33,8 @@ function Compiler.new(interactive)
 		unifier = nil,
 	}, Compiler)
 end
-
 -- Compile source, assign types, generate equations, unify
-function Compiler:compile(source)
+Compiler.compile = function(self, source)
 	local parsed, pos = self.p:parse(source, self.interactive)
 
 	if self.symtab[parsed.name] then
@@ -73,7 +71,7 @@ function Compiler:compile(source)
 end
 
 -- Get type function for codegen
-function Compiler:get_type()
+Compiler.get_type = function(self)
 	local self_ref = self
 	return function(x)
 		return typing.get_expression_type(x, self_ref.unifier)
@@ -81,7 +79,7 @@ function Compiler:get_type()
 end
 
 -- Interpreter mode
-function Compiler:interpret()
+Compiler.interpret = function(self)
 	local Printr = {}
 	function Printr:eval(env, arg)
 		print(arg[1])
@@ -103,7 +101,7 @@ function Compiler:interpret()
 end
 
 -- Execute by generating C, compiling, and running
-function Compiler:execute()
+Compiler.execute = function(self)
 	if #self.code == 0 then
 		error(exceptions.MLCompilerException.new("Nothing to execute!"))
 	end
@@ -148,5 +146,4 @@ function Compiler:execute()
 		error(exceptions.MLCompilerException.new("Execution failed!"))
 	end
 end
-
 return Compiler
