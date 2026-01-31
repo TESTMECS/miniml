@@ -2,7 +2,7 @@
 -- To run the example use 
 -- `lua main.lua examples/<filename>`
 --]]
-local interactive = false
+local interactive = true -- for printing type info
 local compiler = require("compile")
 local c = compiler.new(interactive)
 local filename = arg[1]

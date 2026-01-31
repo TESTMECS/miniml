@@ -1,5 +1,5 @@
 ## TODO 
-- [ ] Annotations
+- [x] Annotations
+- [x] PRETTY PRINTING TYPE INFO
 - [ ] RECURSION
-- [ ] PRETTY PRINTING TYPE INFO
 - [ ] MORE EXAMPLES. 

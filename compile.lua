@@ -57,7 +57,16 @@ Compiler.compile = function(self, source)
 	local t = typing.get_expression_type(parsed.expr.typ, self.unifier)
 
 	if self.interactive then
-		print(string.format("%s :: %s", parsed, t))
+		local name
+		if t.argtypes then
+			name = string.format("(lambda %s -> %s)", table.concat(t.argtypes, ", "), t.rettype.name or "")
+		elseif t.rettype then
+			name = string.format("%s", t.rettype.name)
+		elseif t.name then
+			name = string.format("%s", t.name)
+		end
+		print(string.format("%s :: %s\n", parsed, name))
+		-- print(vim.inspect(t))
 	end
 
 	self.symtab[parsed.name] = t
