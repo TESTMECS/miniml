@@ -1,5 +1,5 @@
 # MiniML
-- WIP MiniML interpreter generating C code
+- MiniML interpreter generating C code
 # Credits
 [@hellerve - Python Implementation](https://github.com/hellerve-pl-experiments/microml)
 - Essentially a copy of the idea but in Lua.
@@ -24,6 +24,12 @@ c:execute()
     4. Looks for `main` function to insert into code.
 - `compiler:execute()` 
     - generates a temporary C file, compiles it, and runs it.
+
+## TODO 
+- [ ] RECURSION
+- [ ] PRETTY PRINTING TYPE INFO
+- [ ] MORE EXAMPLES. 
+
 
 
 
