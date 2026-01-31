@@ -357,8 +357,6 @@ local function get_expression_type(typ, unifier)
 	return apply_unifier(typ, unifier)
 end
 
--- Export --------------------------------------------------
-
 return {
 	Type = Type,
 	Int = Int,
