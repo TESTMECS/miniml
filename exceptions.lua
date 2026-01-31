@@ -1,4 +1,9 @@
 -- Base exception class
+---@class Exception
+---@field msg string
+---@field pos number
+---@field __tostring function
+---@field new fun(msg: string, pos: number): Exception
 local Exception = {}
 Exception.__index = Exception
 
@@ -14,7 +19,7 @@ function Exception:__tostring()
 	end
 end
 
--- MLParserException
+---@class MLParserException: Exception
 local MLParserException = setmetatable({}, Exception)
 MLParserException.__index = MLParserException
 
@@ -22,7 +27,7 @@ function MLParserException.new(msg, pos)
 	return setmetatable({ msg = msg, pos = pos }, MLParserException)
 end
 
--- MLEvalException
+---@class MLEvalException: Exception
 local MLEvalException = setmetatable({}, Exception)
 MLEvalException.__index = MLEvalException
 
@@ -30,15 +35,16 @@ function MLEvalException.new(msg)
 	return setmetatable({ msg = msg }, MLEvalException)
 end
 
--- MLCompilerException
+---@class MLCompilerException: Exception
 local MLCompilerException = setmetatable({}, Exception)
 MLCompilerException.__index = MLCompilerException
 
+---@class MLTypingException: Exception
 function MLCompilerException.new(msg)
 	return setmetatable({ msg = msg }, MLCompilerException)
 end
 
--- MLTypingException
+---@class MLTypingException: Exception
 local MLTypingException = setmetatable({}, Exception)
 MLTypingException.__index = MLTypingException
 

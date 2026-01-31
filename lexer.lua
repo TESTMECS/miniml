@@ -7,7 +7,12 @@ local alnum = alpha + digit
 local ws = S(" \t\n\r") ^ 0
 
 -- Token --------------------------------------------------
-
+---@class Token
+---@field typ string
+---@field val string
+---@field pos number
+---@field __tostring function
+---@field new fun(typ: string|nil, val: string|nil, pos: number|nil): Token
 local Token = {}
 Token.__index = Token
 
@@ -94,7 +99,7 @@ local rules = {
 }
 
 -- Lexer -------------------------------------------------
-
+---@class Lexer
 local Lexer = {}
 Lexer.__index = Lexer
 
@@ -110,6 +115,7 @@ function Lexer:start(buf)
 	self.pos = 1
 end
 
+---@return Token|nil
 function Lexer:token()
 	-- skip whitespace
 	self.pos = ws:match(self.buf, self.pos) or self.pos

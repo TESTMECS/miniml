@@ -14,7 +14,9 @@ local OPERATORS = {
 	[lexer.TIMES] = true,
 	[lexer.DIV] = true,
 }
-
+---@class Parser
+---@field lexer Lexer
+---@field token Token
 local Parser = {}
 Parser.__index = Parser
 
@@ -45,7 +47,12 @@ function Parser:error(msg)
 end
 
 function Parser:next()
-	self.token = self.lexer:token()
+	local token = self.lexer:token()
+	if token ~= nil then
+		self.token = token
+	else
+		error("Unexpected end of file")
+	end
 	if not self.token then
 		self.token = lexer.Token.new(nil, nil, nil)
 	end

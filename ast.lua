@@ -1,7 +1,10 @@
 local exceptions = require("exceptions")
 
 -- Base node ------------------------------------------------
-
+---@class Node
+---@field children Node[]
+---@field compile fun(self:Node, unifier:any):string
+---@field eval fun(self:Node, env:any):any
 local Node = {}
 Node.__index = Node
 
@@ -15,7 +18,8 @@ function Node:visit_children(f)
 end
 
 -- Values --------------------------------------------------
-
+---@class Val:Node
+---@field value any
 local Val = setmetatable({}, Node)
 Val.__index = Val
 
@@ -27,12 +31,13 @@ function Val:__tostring()
 	return tostring(self.value)
 end
 
-function Val:compile(unifier)
+function Val:compile(_unifier)
 	return tostring(math.floor(self.value))
 end
 
 -- Int -----------------------------------------------------
-
+---@class IntVal:Val
+---@field value number
 local Int = setmetatable({}, Val)
 Int.__index = Int
 
@@ -40,12 +45,13 @@ function Int.new(v)
 	return setmetatable({ value = v }, Int)
 end
 
-function Int:eval(env)
+function Int:eval(_env)
 	return math.floor(self.value)
 end
 
 -- Bool ----------------------------------------------------
-
+---@class BoolVal:Val
+---@field value boolean
 local Bool = setmetatable({}, Val)
 Bool.__index = Bool
 
@@ -58,7 +64,8 @@ function Bool:eval(env)
 end
 
 -- Id ------------------------------------------------------
-
+---@class Id:Node
+---@field name string
 local Id = setmetatable({}, Node)
 Id.__index = Id
 
@@ -70,7 +77,7 @@ function Id:__tostring()
 	return self.name
 end
 
-function Id:compile(unifier)
+function Id:compile(_unifier)
 	return self.name
 end
 
@@ -111,7 +118,10 @@ local OPERATORS = {
 }
 
 -- Op ------------------------------------------------------
-
+---@class Op:Node
+---@field op string
+---@field left Node
+---@field right Node
 local Op = setmetatable({}, Node)
 Op.__index = Op
 
@@ -137,7 +147,9 @@ function Op:eval(env)
 end
 
 -- App -----------------------------------------------------
-
+---@class App:Node
+---@field f Node
+---@field args Node[]
 local App = setmetatable({}, Node)
 App.__index = App
 
@@ -175,7 +187,10 @@ function App:eval(env)
 end
 
 -- If ------------------------------------------------------
-
+---@class If:Node
+---@field ifx Node
+---@field thenx Node
+---@field elsex Node
 local If = setmetatable({}, Node)
 If.__index = If
 
@@ -204,7 +219,10 @@ function If:eval(env)
 end
 
 -- Lambda --------------------------------------------------
-
+---@class Lambda:Node
+---@field argnames string[]
+---@field expr Node
+---@field argtypes any[]
 local Lambda = setmetatable({}, Node)
 Lambda.__index = Lambda
 
@@ -220,7 +238,9 @@ end
 function Lambda:__tostring()
 	local arg_str = ""
 	for i, arg in ipairs(self.argnames) do
-		if i > 1 then arg_str = arg_str .. ", " end
+		if i > 1 then
+			arg_str = arg_str .. ", "
+		end
 		arg_str = arg_str .. arg
 	end
 	return ("(lambda %s -> %s)"):format(arg_str, self.expr)
@@ -241,22 +261,26 @@ function Lambda:eval(env, args)
 	return self.expr:eval(new_env)
 end
 
-function Lambda:compile(unifier)
+function Lambda:compile(_unifier)
 	local args = {}
 	for i, name in ipairs(self.argnames) do
 		args[i] = "int " .. name
 	end
-	local rettype = "int"  -- For now, assume int return type
+	local rettype = "int" -- For now, assume int return type
 	local argstr = ""
 	for i, arg in ipairs(args) do
-		if i > 1 then argstr = argstr .. ", " end
+		if i > 1 then
+			argstr = argstr .. ", "
+		end
 		argstr = argstr .. arg
 	end
 	return ("(%s)(%s)"):format(rettype, argstr)
 end
 
 -- Decl ----------------------------------------------------
-
+---@class Decl:Node
+---@field name string
+---@field expr Node
 local Decl = setmetatable({}, Node)
 Decl.__index = Decl
 
@@ -285,7 +309,9 @@ function Decl:compile(unifier)
 		end
 		local argstr = ""
 		for i, arg in ipairs(args) do
-			if i > 1 then argstr = argstr .. ", " end
+			if i > 1 then
+				argstr = argstr .. ", "
+			end
 			argstr = argstr .. arg
 		end
 		return ("int %s(%s) {\n    return %s;\n}"):format(self.name, argstr, self.expr.expr:compile(unifier))

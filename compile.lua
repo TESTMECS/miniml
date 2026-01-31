@@ -1,5 +1,6 @@
 local os = require("os")
 local io = require("io")
+---@alias Parser table
 local parser = require("parser")
 local typing = require("typing")
 local exceptions = require("exceptions")
@@ -12,7 +13,14 @@ int print(int in) {
     return 0;
 }
 ]]
-
+---@class Compiler
+---@field interactive boolean
+---@field p Parser
+---@field equations table
+---@field symtab table
+---@field code table
+---@field main number
+---@field unifier table
 local Compiler = {}
 Compiler.__index = Compiler
 
@@ -108,7 +116,7 @@ function Compiler:execute()
 	local lines = { PRELUDE }
 
 	-- compile non-main nodes
-	for i, node in ipairs(self.code) do
+	for _, node in ipairs(self.code) do
 		if node ~= main_node then
 			table.insert(lines, node:compile(self:get_type()))
 		end
@@ -122,6 +130,9 @@ function Compiler:execute()
 	local exe = os.tmpname()
 
 	local f = io.open(cfile, "w")
+	if f == nil then
+		error(exceptions.MLCompilerException.new("Could not open temporary C file!"))
+	end
 	f:write(compiled)
 	f:close()
 

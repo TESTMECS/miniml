@@ -2,7 +2,9 @@ local ast = require("ast")
 local exceptions = require("exceptions")
 
 -- Base Type ------------------------------------------------
-
+---@class Type
+---@field name string
+---@field c string
 local Type = {}
 Type.__index = Type
 
@@ -21,7 +23,7 @@ function Type:to_c()
 end
 
 -- Int -----------------------------------------------------
-
+---@class Int: Type
 local Int = setmetatable({ name = "Int", c = "int" }, Type)
 Int.__index = Int
 
@@ -30,7 +32,7 @@ function Int.new()
 end
 
 -- Bool ----------------------------------------------------
-
+---@class Bool: Type
 local Bool = setmetatable({ name = "Bool", c = "int" }, Type)
 Bool.__index = Bool
 
@@ -39,7 +41,9 @@ function Bool.new()
 end
 
 -- Func ----------------------------------------------------
-
+---@class Func: Type
+---@field argtypes Type[]
+---@field rettype Type
 local Func = setmetatable({}, Type)
 Func.__index = Func
 
@@ -87,7 +91,7 @@ function Func:to_c()
 end
 
 -- TypeVar -------------------------------------------------
-
+---@class TypeVar: Type
 local TypeVar = setmetatable({}, Type)
 TypeVar.__index = TypeVar
 
@@ -171,7 +175,10 @@ local function assign_typenames(node, symtab)
 end
 
 -- Equation ------------------------------------------------
-
+---@class Equation
+---@field left Type
+---@field right Type
+---@field original Node
 local Equation = {}
 Equation.__index = Equation
 
