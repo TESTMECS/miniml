@@ -16,7 +16,7 @@ int print(int in) {
 ---@field interactive boolean: for printing type info
 ---@field p Parser
 ---@field equations table
----@field symtab table
+---@field symtab table<string, Type>
 ---@field code table
 ---@field main number
 ---@field unifier table
@@ -81,7 +81,7 @@ end
 -- Interpreter mode
 Compiler.interpret = function(self)
 	local Printr = {}
-	function Printr:eval(env, arg)
+	function Printr:eval(_env, arg)
 		print(arg[1])
 	end
 

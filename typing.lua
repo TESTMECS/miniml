@@ -44,14 +44,12 @@ end
 ---@field new fun(argtypes: Type[], rettype: Type): Func
 local Func = setmetatable({}, Type)
 Func.__index = Func
-
 Func.new = function(argtypes, rettype)
 	return setmetatable({
 		argtypes = argtypes,
 		rettype = rettype,
 	}, Func)
 end
-
 Func.__tostring = function(self)
 	if #self.argtypes == 0 then
 		return "(-> " .. self.rettype .. ")"
@@ -65,7 +63,6 @@ Func.__tostring = function(self)
 	end
 	return "(" .. table.concat(parts, " -> ") .. " -> " .. self.rettype .. ")"
 end
-
 ---@description Check function equality using argtypes
 ---@param other Func
 Func.equals = function(self, other)
@@ -85,11 +82,9 @@ Func.equals = function(self, other)
 	end
 	return true
 end
-
 Func.to_c = function(self)
 	return self.rettype:to_c()
 end
-
 -- TypeVar -------------------------------------------------
 ---@class TypeVar:Type
 local TypeVar = setmetatable({}, Type)
@@ -123,9 +118,11 @@ local exceptor = function(msg)
 	error(exceptions.MLTypingException.new(msg))
 end
 -- Assign type variables ----------------------------------
+---@return table<string, Type>
 local function assign_typenames(node, symtab)
 	symtab = symtab or {}
 	if getmetatable(node) == ast.Id then
+		-- Lookup Id in symboltable
 		if symtab[node.name] then
 			node.typ = symtab[node.name]
 		else
@@ -133,12 +130,15 @@ local function assign_typenames(node, symtab)
 		end
 	elseif getmetatable(node) == ast.Lambda then
 		node.typ = make_type_var()
+		-- Create new scope
 		local local_symtab = {}
 		node.argtypes = {}
+		-- Generate type variables for each argument
 		for i, name in ipairs(node.argnames) do
 			local_symtab[name] = make_type_var()
 			node.argtypes[i] = local_symtab[name]
 		end
+		-- Merge Symbol table with local scope
 		local merged = {}
 		for k, v in pairs(symtab) do
 			merged[k] = v
@@ -146,8 +146,12 @@ local function assign_typenames(node, symtab)
 		for k, v in pairs(local_symtab) do
 			merged[k] = v
 		end
+		-- Assign types to children
 		assign_typenames(node.expr, merged)
 	elseif getmetatable(node) == ast.Op or getmetatable(node) == ast.If or getmetatable(node) == ast.App then
+		-- If, App, or Op
+		-- Generate a new type variable
+		-- Assign types to children
 		node.typ = make_type_var()
 		node:visit_children(function(c)
 			assign_typenames(c, symtab)
@@ -159,10 +163,8 @@ local function assign_typenames(node, symtab)
 	else
 		exceptor("unknown node")
 	end
-
 	return symtab
 end
-
 -- Equation ------------------------------------------------
 ---@class Equation
 ---@field left Type
@@ -254,7 +256,6 @@ local function occurs_check(v, typ, subst)
 	end
 	return false
 end
-
 local unify_variable = function(v, typ, subst)
 	if subst[v.name] then
 		return Unify(subst[v.name], typ, subst)
@@ -268,7 +269,6 @@ local unify_variable = function(v, typ, subst)
 	subst[v.name] = typ
 	return subst
 end
-
 function Unify(x, y, subst)
 	if not subst then
 		return nil
@@ -276,7 +276,6 @@ function Unify(x, y, subst)
 	if x:equals(y) then
 		return subst
 	end
-
 	if getmetatable(x) == TypeVar then
 		return unify_variable(x, y, subst)
 	end
@@ -295,7 +294,6 @@ function Unify(x, y, subst)
 	end
 	return nil
 end
-
 local unify_equations = function(eqs)
 	local subst = {}
 	for _, eq in ipairs(eqs) do
@@ -306,9 +304,7 @@ local unify_equations = function(eqs)
 	end
 	return subst
 end
-
 -- Apply unifier ------------------------------------------
-
 ---@return Type|Func|nil
 local function apply_unifier(typ, subst)
 	if not subst then
@@ -331,16 +327,13 @@ local function apply_unifier(typ, subst)
 		return Func.new(args, apply_unifier(typ.rettype, subst))
 	end
 end
-
 -- Get final expression type after unification -----------------
----
 local get_expression_type = function(typ, unifier)
 	if not unifier then
 		return typ
 	end
 	return apply_unifier(typ, unifier)
 end
-
 return {
 	Type = Type,
 	Int = Int,
