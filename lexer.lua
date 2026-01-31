@@ -86,6 +86,9 @@ local rules = {
 	tok(P("("), T.LPAREN),
 	tok(P(")"), T.RPAREN),
 
+	-- integers
+	tok(digit ^ 1, T.INT),
+
 	-- identifiers (last)
 	tok(alpha * alnum ^ 0, T.ID),
 }
@@ -139,4 +142,31 @@ function Lexer:tokens()
 	end
 end
 
-return Lexer
+return {
+	Lexer = Lexer,
+	Token = Token,
+	-- Token constants
+	IF = T.IF,
+	THEN = T.THEN,
+	ELSE = T.ELSE,
+	TRUE = T.TRUE,
+	FALSE = T.FALSE,
+	LAMBDA = T.LAMBDA,
+	INT = T.INT,
+	ARROW = T.ARROW,
+	NEQ = T.NEQ,
+	EQEQ = T.EQEQ,
+	GEQ = T.GEQ,
+	LEQ = T.LEQ,
+	GT = T.GT,
+	LT = T.LT,
+	PLUS = T.PLUS,
+	MINUS = T.MINUS,
+	TIMES = T.TIMES,
+	DIV = T.DIV,
+	LPAREN = T.LPAREN,
+	RPAREN = T.RPAREN,
+	EQ = T.EQ,
+	COMMA = T.COMMA,
+	ID = T.ID,
+}

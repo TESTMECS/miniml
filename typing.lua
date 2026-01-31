@@ -136,15 +136,15 @@ local function assign_typenames(node, symtab)
 		if symtab[node.name] then
 			node.typ = symtab[node.name]
 		else
-			exceptor('unbound name "' .. node.name .. '"')
+			error('unbound name "' .. node.name .. '"')
 		end
 	elseif getmetatable(node) == ast.Lambda then
 		node.typ = make_type_var()
 		local local_symtab = {}
 		node.argtypes = {}
-		for _, name in ipairs(node.argnames) do
+		for i, name in ipairs(node.argnames) do
 			local_symtab[name] = make_type_var()
-			node.argtypes[name] = local_symtab[name]
+			node.argtypes[i] = local_symtab[name]
 		end
 		local merged = {}
 		for k, v in pairs(symtab) do
@@ -341,6 +341,15 @@ local function apply_unifier(typ, subst)
 	end
 end
 
+-- Get final expression type after unification -----------------
+
+local function get_expression_type(typ, unifier)
+	if not unifier then
+		return typ
+	end
+	return apply_unifier(typ, unifier)
+end
+
 -- Export --------------------------------------------------
 
 return {
@@ -353,5 +362,6 @@ return {
 	generate_equations = generate_equations,
 	unify_equations = unify_equations,
 	apply_unifier = apply_unifier,
+	get_expression_type = get_expression_type,
 	reset_type_counter = reset_type_counter,
 }

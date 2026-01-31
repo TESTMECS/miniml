@@ -145,7 +145,7 @@ function App.new(f, args)
 	return setmetatable({
 		f = f,
 		args = args or {},
-		children = { f, table.unpack(args or {}) },
+		children = { f, unpack(args or {}) },
 	}, App)
 end
 
@@ -218,7 +218,12 @@ function Lambda.new(argnames, expr)
 end
 
 function Lambda:__tostring()
-	return ("(lambda %s -> %s)"):format(table.concat(self.argnames, ", "), self.expr)
+	local arg_str = ""
+	for i, arg in ipairs(self.argnames) do
+		if i > 1 then arg_str = arg_str .. ", " end
+		arg_str = arg_str .. arg
+	end
+	return ("(lambda %s -> %s)"):format(arg_str, self.expr)
 end
 
 function Lambda:eval(env, args)
@@ -234,6 +239,20 @@ function Lambda:eval(env, args)
 		new_env[name] = args[i]
 	end
 	return self.expr:eval(new_env)
+end
+
+function Lambda:compile(unifier)
+	local args = {}
+	for i, name in ipairs(self.argnames) do
+		args[i] = "int " .. name
+	end
+	local rettype = "int"  -- For now, assume int return type
+	local argstr = ""
+	for i, arg in ipairs(args) do
+		if i > 1 then argstr = argstr .. ", " end
+		argstr = argstr .. arg
+	end
+	return ("(%s)(%s)"):format(rettype, argstr)
 end
 
 -- Decl ----------------------------------------------------
@@ -255,6 +274,25 @@ end
 
 function Decl:eval(env)
 	env[self.name] = self.expr
+end
+
+function Decl:compile(unifier)
+	if getmetatable(self.expr) == Lambda then
+		-- Generate a proper C function with arguments
+		local args = {}
+		for i, name in ipairs(self.expr.argnames) do
+			args[i] = "int " .. name
+		end
+		local argstr = ""
+		for i, arg in ipairs(args) do
+			if i > 1 then argstr = argstr .. ", " end
+			argstr = argstr .. arg
+		end
+		return ("int %s(%s) {\n    return %s;\n}"):format(self.name, argstr, self.expr.expr:compile(unifier))
+	else
+		-- Simple function with no arguments
+		return ("int %s() {\n    return %s;\n}"):format(self.name, self.expr:compile(unifier))
+	end
 end
 
 -- exports -------------------------------------------------

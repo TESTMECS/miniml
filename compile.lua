@@ -1,7 +1,7 @@
 local os = require("os")
 local io = require("io")
 local parser = require("parser")
-local typing = require("types")
+local typing = require("typing")
 local exceptions = require("exceptions")
 
 local PRELUDE = [[
@@ -19,7 +19,7 @@ Compiler.__index = Compiler
 function Compiler.new(interactive)
 	return setmetatable({
 		interactive = interactive ~= false,
-		p = parser.Parser.new(),
+		p = parser.new(),
 		equations = {},
 		symtab = { print = typing.Func.new({ typing.Int.new() }, typing.Int.new()) },
 		code = {},

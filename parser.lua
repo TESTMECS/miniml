@@ -57,7 +57,8 @@ function Parser:match(typ)
 		self:next()
 		return val
 	end
-	self:error(string.format("Expected %s, but found %s at %d", typ, self.token.typ, self.token.pos))
+	local pos = self.token.pos or "unknown"
+	self:error(string.format("Expected %s, but found %s at %s", typ, self.token.typ, pos))
 end
 
 function Parser:decl()
@@ -73,9 +74,9 @@ function Parser:decl()
 	local expr = self:expr()
 
 	if #argnames > 0 then
-		return ast.Decl(name, ast.Lambda(argnames, expr))
+		return ast.Decl.new(name, ast.Lambda.new(argnames, expr))
 	end
-	return ast.Decl(name, expr)
+	return ast.Decl.new(name, expr)
 end
 
 function Parser:expr()
@@ -84,7 +85,7 @@ function Parser:expr()
 		local op = self.token.typ
 		self:next()
 		local rhs = self:expr_component()
-		return ast.Op(op, node, rhs)
+		return ast.Op.new(op, node, rhs)
 	end
 	return node
 end
@@ -94,12 +95,12 @@ function Parser:expr_component()
 
 	if tok.typ == lexer.INT then
 		self:next()
-		return ast.Int(tok.val)
+		return ast.Int.new(tok.val)
 	end
 
 	if tok.typ == lexer.TRUE or tok.typ == lexer.FALSE then
 		self:next()
-		return ast.Bool(tok.typ == lexer.TRUE)
+		return ast.Bool.new(tok.typ == lexer.TRUE)
 	end
 
 	if tok.typ == lexer.ID then
@@ -107,7 +108,7 @@ function Parser:expr_component()
 		if self.token.typ == lexer.LPAREN then
 			return self:app(tok.val)
 		end
-		return ast.Id(tok.val)
+		return ast.Id.new(tok.val)
 	end
 
 	if tok.typ == lexer.LPAREN then
@@ -135,7 +136,7 @@ function Parser:ifexpr()
 	local thenexpr = self:expr()
 	self:match(lexer.ELSE)
 	local elseexpr = self:expr()
-	return ast.If(cond, thenexpr, elseexpr)
+	return ast.If.new(cond, thenexpr, elseexpr)
 end
 
 function Parser:lambdaexpr()
@@ -149,7 +150,7 @@ function Parser:lambdaexpr()
 
 	self:match(lexer.ARROW)
 	local expr = self:expr()
-	return ast.Lambda(argnames, expr)
+	return ast.Lambda.new(argnames, expr)
 end
 
 function Parser:app(name)
@@ -166,7 +167,7 @@ function Parser:app(name)
 	end
 
 	self:match(lexer.RPAREN)
-	return ast.App(ast.Id(name), args)
+	return ast.App.new(ast.Id.new(name), args)
 end
 
 return Parser
