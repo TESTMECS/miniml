@@ -11,8 +11,8 @@ local ws = S(" \t\n\r") ^ 0
 ---@field typ string
 ---@field val string
 ---@field pos number
----@field __tostring function
 ---@field new fun(typ: string|nil, val: string|nil, pos: number|nil): Token
+---@field __tostring fun(self: Token): string
 local Token = {}
 Token.__index = Token
 
@@ -106,6 +106,11 @@ local rules = {
 ---@class Lexer
 ---@field buf string
 ---@field pos number
+---@field new fun(): Lexer
+---@field start fun(self: Lexer, buf: string)
+---@field token fun(self: Lexer): Token|nil
+---@field peek fun(self: Lexer): Token|nil
+---@field tokens fun(self: Lexer): fun(): Token|nil
 local Lexer = {}
 Lexer.__index = Lexer
 
