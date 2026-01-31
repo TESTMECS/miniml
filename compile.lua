@@ -55,6 +55,9 @@ Compiler.compile = function(self, source)
 	self.unifier = typing.unify_equations(self.equations)
 
 	local t = typing.get_expression_type(parsed.expr.typ, self.unifier)
+	if t == nil then
+		error(exceptions.MLCompilerException.new("Could not infer type!"))
+	end
 
 	if self.interactive then
 		local name
