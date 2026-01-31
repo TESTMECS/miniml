@@ -16,11 +16,11 @@ local ws = S(" \t\n\r") ^ 0
 local Token = {}
 Token.__index = Token
 
-function Token.new(typ, val, pos)
+Token.new = function(typ, val, pos)
 	return setmetatable({ typ = typ, val = val, pos = pos }, Token)
 end
 
-function Token:__tostring()
+Token.__tostring = function(self)
 	return string.format("%s(%s) at %d", self.typ, self.val, self.pos)
 end
 
