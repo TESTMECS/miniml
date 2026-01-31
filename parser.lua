@@ -17,6 +17,17 @@ local OPERATORS = {
 ---@class Parser
 ---@field lexer Lexer
 ---@field token Token: current token
+---@field new fun(): Parser
+---@field parse fun(self: Parser, source: string, should_terminate: boolean): Decl, number
+---@field error fun(self: Parser, msg: string)
+---@field next fun(self: Parser)
+---@field match fun(self: Parser, typ: string): string|nil
+---@field decl fun(self: Parser): Decl
+---@field expr fun(self: Parser): ExprComponent|Op|nil
+---@field expr_component fun(self: Parser): ExprComponent|nil
+---@field ifexpr fun(self: Parser): If
+---@field lambdaexpr fun(self: Parser): Lambda
+---@field app fun(self: Parser, name: string): App
 local Parser = {}
 Parser.__index = Parser
 
@@ -49,6 +60,7 @@ Parser.next = function(self)
 	self.token = self.lexer:token() or lexer.Token.new(nil, nil, nil)
 end
 
+---@return string|nil
 Parser.match = function(self, typ)
 	if self.token.typ == typ then
 		local val = self.token.val
