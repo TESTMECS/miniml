@@ -2,6 +2,7 @@ local exceptions = require("exceptions")
 local unpack = unpack or table.unpack ---@diagnostic disable-line
 -- Base node ------------------------------------------------
 ---@class Node
+---@field typ Type
 ---@field children Node[]
 ---@field compile fun(self:Node, unifier:any):string
 ---@field eval fun(self:Node, env:any):any
@@ -26,7 +27,7 @@ end
 Val.__tostring = function(self)
 	return tostring(self.value)
 end
-Val.compile = function(self, _unifier)
+Val.compile = function(self)
 	return tostring(math.floor(self.value))
 end
 -- Int -----------------------------------------------------
@@ -37,7 +38,7 @@ Int.__index = Int
 Int.new = function(v)
 	return setmetatable({ value = v }, Int)
 end
-Int.eval = function(self, _env)
+Int.eval = function(self)
 	return math.floor(self.value)
 end
 -- Bool ----------------------------------------------------
@@ -48,7 +49,7 @@ Bool.__index = Bool
 Bool.new = function(v)
 	return setmetatable({ value = v }, Bool)
 end
-Bool.eval = function(self, _env)
+Bool.eval = function(self)
 	return not not self.value
 end
 -- Id ------------------------------------------------------
@@ -62,7 +63,7 @@ end
 Id.__tostring = function(self)
 	return self.name
 end
-Id.compile = function(self, _unifier)
+Id.compile = function(self)
 	return self.name
 end
 Id.eval = function(self, env)
@@ -222,20 +223,22 @@ Lambda.eval = function(self, env, args)
 	end
 	return self.expr:eval(new_env)
 end
-Lambda.compile = function(self, _unifier)
+Lambda.compile = function(self, unifier)
+	local typ = unifier(self.expr.typ):to_c()
+	local compiled = self.expr:compile(unifier)
+	local body = string.format("return %s;", compiled)
+
 	local args = {}
-	for i, name in ipairs(self.argnames) do
-		args[i] = "int " .. name
+	for _, name in ipairs(self.argnames) do
+		table.insert(args, string.format("%s %s", unifier(self.argtypes[name]):to_c(), name))
 	end
-	local rettype = "int" -- For now, assume int return type
-	local argstr = ""
-	for i, arg in ipairs(args) do
-		if i > 1 then
-			argstr = argstr .. ", "
-		end
-		argstr = argstr .. arg
+
+	local body_lines = {}
+	for line in body:gmatch("[^\n]+") do
+		table.insert(body_lines, "  " .. line)
 	end
-	return ("(%s)(%s)"):format(rettype, argstr)
+
+	return string.format("(%s) {\n%s\n}", table.concat(args, ", "), table.concat(body_lines, "\n"))
 end
 -- Decl ----------------------------------------------------
 ---@class Decl:Node
