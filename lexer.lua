@@ -52,16 +52,20 @@ local T = {
 	ID = "id",
 }
 
--- Helper: token constructor pattern ---------------------
-
-local function tok(pat, typ)
+---@description Match the Pattern and return a new token
+---@param pat string
+---@param typ string
+---@return Token
+local tok = function(pat, typ)
 	return Cp() * C(pat) / function(pos, val)
 		return Token.new(typ, val, pos)
 	end
 end
 
 -- Rules (ordered!) --------------------------------------
-
+--- 'P(string)': Literal match of 'string'
+--- '*': Followed by
+--- '-alnum': Match alphanumeric and fallback to ""
 local rules = {
 	-- keywords (word boundary)
 	tok(P("if") * -alnum, T.IF),
@@ -91,7 +95,7 @@ local rules = {
 	tok(P("("), T.LPAREN),
 	tok(P(")"), T.RPAREN),
 
-	-- integers
+	-- integers('^1' match at least one digit)
 	tok(digit ^ 1, T.INT),
 
 	-- identifiers (last)
@@ -100,14 +104,18 @@ local rules = {
 
 -- Lexer -------------------------------------------------
 ---@class Lexer
+---@field buf string
+---@field pos number
 local Lexer = {}
 Lexer.__index = Lexer
 
-function Lexer.new()
+Lexer.new = function()
 	return setmetatable({}, Lexer)
 end
 
-function Lexer:start(buf)
+---@TODO drew : fix comment stripping
+---@param buf string
+Lexer.start = function(self, buf)
 	-- strip (* ... *) comments, preserve positions
 	self.buf = buf:gsub("%(%*.-%*%)", function(s)
 		return string.rep(" ", #s)
@@ -115,8 +123,9 @@ function Lexer:start(buf)
 	self.pos = 1
 end
 
+---@description Get the next token
 ---@return Token|nil
-function Lexer:token()
+Lexer.token = function(self)
 	-- skip whitespace
 	self.pos = ws:match(self.buf, self.pos) or self.pos
 
@@ -125,24 +134,25 @@ function Lexer:token()
 	end
 
 	for _, rule in ipairs(rules) do
+		---@diagnostic disable
 		local tok = rule:match(self.buf, self.pos)
 		if tok then
 			self.pos = self.pos + #tok.val
 			return tok
 		end
 	end
-
 	error(("lexer error at %d"):format(self.pos))
 end
 
-function Lexer:peek()
+Lexer.peek = function(self)
 	local p = self.pos
 	local t = self:token()
 	self.pos = p
 	return t
 end
 
-function Lexer:tokens()
+---@description return a generator for tokens.
+Lexer.tokens = function(self)
 	return function()
 		return self:token()
 	end
