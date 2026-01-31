@@ -16,25 +16,24 @@ local OPERATORS = {
 }
 ---@class Parser
 ---@field lexer Lexer
----@field token Token
+---@field token Token: current token
 local Parser = {}
 Parser.__index = Parser
 
-function Parser.new()
+Parser.new = function()
 	return setmetatable({
 		lexer = lexer.Lexer.new(),
 		token = nil,
 	}, Parser)
 end
 
-function Parser:parse(source, should_terminate)
+---@return Decl, number: declaration and position of that token.
+Parser.parse = function(self, source, should_terminate)
 	if should_terminate == nil then
 		should_terminate = true
 	end
-
 	self.lexer:start(source)
 	self:next()
-
 	local decl = self:decl()
 	if self.token.typ ~= nil and should_terminate then
 		self:error(string.format('Unexpected token "%s" at %d', self.token.val, self.token.pos))
@@ -42,18 +41,15 @@ function Parser:parse(source, should_terminate)
 	return decl, self.token.pos
 end
 
-function Parser:error(msg)
+Parser.error = function(self, msg)
 	error(exceptions.MLParserException.new(msg, self.token.pos))
 end
 
-function Parser:next()
-	self.token = self.lexer:token()
-	if not self.token then
-		self.token = lexer.Token.new(nil, nil, nil)
-	end
+Parser.next = function(self)
+	self.token = self.lexer:token() or lexer.Token.new(nil, nil, nil)
 end
 
-function Parser:match(typ)
+Parser.match = function(self, typ)
 	if self.token.typ == typ then
 		local val = self.token.val
 		self:next()
@@ -63,36 +59,40 @@ function Parser:match(typ)
 	self:error(string.format("Expected %s, but found %s at %s", typ, self.token.typ, pos))
 end
 
-function Parser:decl()
+---@description Parse a declaration name '=' expr
+---@return Decl
+Parser.decl = function(self)
 	local name = self:match(lexer.ID)
 	local argnames = {}
-
 	while self.token.typ == lexer.ID do
 		table.insert(argnames, self.token.val)
 		self:next()
 	end
-
 	self:match(lexer.EQ)
 	local expr = self:expr()
-
 	if #argnames > 0 then
 		return ast.Decl.new(name, ast.Lambda.new(argnames, expr))
 	end
 	return ast.Decl.new(name, expr)
 end
 
-function Parser:expr()
-	local node = self:expr_component()
+---@description lhs op rhs
+---@return ExprComponent|Op|nil
+Parser.expr = function(self)
+	local lhs = self:expr_component()
 	if OPERATORS[self.token.typ] then
 		local op = self.token.typ
 		self:next()
 		local rhs = self:expr_component()
-		return ast.Op.new(op, node, rhs)
+		return ast.Op.new(op, lhs, rhs)
 	end
-	return node
+	return lhs
 end
 
-function Parser:expr_component()
+---@alias ExprComponent IntVal|BoolVal|App|Id|Op|Lambda|If
+---@description Parse expression component or error if not found
+---@return ExprComponent|nil
+Parser.expr_component = function(self)
 	local tok = self.token
 
 	if tok.typ == lexer.INT then
@@ -131,7 +131,8 @@ function Parser:expr_component()
 	self:error("We don’t support " .. tostring(tok.typ) .. " yet!")
 end
 
-function Parser:ifexpr()
+---@return If
+Parser.ifexpr = function(self)
 	self:match(lexer.IF)
 	local cond = self:expr()
 	self:match(lexer.THEN)
@@ -141,7 +142,8 @@ function Parser:ifexpr()
 	return ast.If.new(cond, thenexpr, elseexpr)
 end
 
-function Parser:lambdaexpr()
+---@return Lambda
+Parser.lambdaexpr = function(self)
 	self:match(lexer.LAMBDA)
 	local argnames = {}
 
@@ -155,7 +157,8 @@ function Parser:lambdaexpr()
 	return ast.Lambda.new(argnames, expr)
 end
 
-function Parser:app(name)
+---@return App
+Parser.app = function(self, name)
 	self:match(lexer.LPAREN)
 	local args = {}
 
