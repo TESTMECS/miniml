@@ -1,5 +1,5 @@
 # MiniML
-- Toy MiniML interpreter generating C code
+- WIP MiniML interpreter generating C code
 # Credits
 [@hellerve - Python Implementation](https://github.com/hellerve-pl-experiments/microml)
 - Essentially a copy of the idea but in Lua.
