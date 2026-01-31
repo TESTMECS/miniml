@@ -1,42 +1,45 @@
 local ast = require("ast")
 local exceptions = require("exceptions")
-
 -- Base Type ------------------------------------------------
 ---@class Type
 ---@field name string
 ---@field c string
+---@field __tostring fun(self: Type): string
+---@field equals fun(self: Type, other: Type): boolean
+---@field to_c fun(self: Type): string
 local Type = {}
 Type.__index = Type
 
-function Type:__tostring()
+Type.__tostring = function(self)
 	return self.name
 end
 
 Type.__repr = Type.__tostring
 
-function Type:equals(other)
+Type.equals = function(self, other)
 	return getmetatable(self) == getmetatable(other)
 end
 
-function Type:to_c()
+Type.to_c = function(self)
 	return self.c
 end
-
 -- Int -----------------------------------------------------
----@class Int: Type
+---@class Int:Type
+---@field new fun(): Int
 local Int = setmetatable({ name = "Int", c = "int" }, Type)
 Int.__index = Int
 
-function Int.new()
+Int.new = function()
 	return setmetatable({}, Int)
 end
 
 -- Bool ----------------------------------------------------
 ---@class Bool: Type
+---@field new fun(): Bool
 local Bool = setmetatable({ name = "Bool", c = "int" }, Type)
 Bool.__index = Bool
 
-function Bool.new()
+Bool.new = function()
 	return setmetatable({}, Bool)
 end
 
@@ -44,17 +47,18 @@ end
 ---@class Func: Type
 ---@field argtypes Type[]
 ---@field rettype Type
+---@field new fun(argtypes: Type[], rettype: Type): Func
 local Func = setmetatable({}, Type)
 Func.__index = Func
 
-function Func.new(argtypes, rettype)
+Func.new = function(argtypes, rettype)
 	return setmetatable({
 		argtypes = argtypes,
 		rettype = rettype,
 	}, Func)
 end
 
-function Func:__tostring()
+Func.__tostring = function(self)
 	if #self.argtypes == 0 then
 		return "(-> " .. self.rettype .. ")"
 	end
@@ -68,7 +72,9 @@ function Func:__tostring()
 	return "(" .. table.concat(parts, " -> ") .. " -> " .. self.rettype .. ")"
 end
 
-function Func:equals(other)
+---@description Check function equality using argtypes
+---@param other Func
+Func.equals = function(self, other)
 	if getmetatable(other) ~= Func then
 		return false
 	end
@@ -86,7 +92,7 @@ function Func:equals(other)
 	return true
 end
 
-function Func:to_c()
+Func.to_c = function(self)
 	return self.rettype:to_c()
 end
 
@@ -94,45 +100,35 @@ end
 ---@class TypeVar: Type
 local TypeVar = setmetatable({}, Type)
 TypeVar.__index = TypeVar
-
-function TypeVar.new(name)
+TypeVar.new = function(name)
 	return setmetatable({ name = name }, TypeVar)
 end
-
-function TypeVar:equals(other)
+TypeVar.equals = function(self, other)
 	return getmetatable(other) == TypeVar and self.name == other.name
 end
-
-function TypeVar:to_c()
+TypeVar.to_c = function(self)
 	return self.name
 end
-
 -- Fresh type variables -----------------------------------
-
 local type_counter = 0
-
-local function reset_type_counter()
+local reset_type_counter = function()
 	type_counter = 0
 end
-
-local function fresh_typename()
+---@return string
+local fresh_typename = function()
 	local n = type_counter
 	type_counter = type_counter + 1
 	return "t" .. n
 end
-
-local function make_type_var()
+---@return TypeVar
+local make_type_var = function()
 	return TypeVar.new(fresh_typename())
 end
-
 -- Errors --------------------------------------------------
-
-local function exceptor(msg)
+local exceptor = function(msg)
 	error(exceptions.MLTypingException.new(msg))
 end
-
 -- Assign type variables ----------------------------------
-
 local function assign_typenames(node, symtab)
 	symtab = symtab or {}
 
@@ -179,23 +175,22 @@ end
 ---@field left Type
 ---@field right Type
 ---@field original Node
+---@field new fun(left: Type, right: Type, original: Node): Equation
+---@field __tostring fun(self: Equation): string
+---@field equals fun(self: Equation, other: Equation): boolean
 local Equation = {}
 Equation.__index = Equation
-
-function Equation.new(left, right, original)
+Equation.new = function(left, right, original)
 	return setmetatable({
 		left = left,
 		right = right,
 		original = original,
 	}, Equation)
 end
-
-function Equation:__tostring()
+Equation.__tostring = function(self)
 	return tostring(self.left) .. " :: " .. tostring(self.right) .. " [from " .. tostring(self.original) .. "]"
 end
-
 -- Equation generation ------------------------------------
-
 local BOOL_OPS = {
 	["!="] = true,
 	["=="] = true,
@@ -204,10 +199,8 @@ local BOOL_OPS = {
 	[">"] = true,
 	["<"] = true,
 }
-
 local function generate_equations(node, eqs)
 	eqs = eqs or {}
-
 	if getmetatable(node) == ast.Int then
 		table.insert(eqs, Equation.new(node.typ, Int.new(), node))
 	elseif getmetatable(node) == ast.Bool then
@@ -246,12 +239,9 @@ local function generate_equations(node, eqs)
 		end
 		table.insert(eqs, Equation.new(node.typ, Func.new(args, node.expr.typ), node))
 	end
-
 	return eqs
 end
-
 -- Unification --------------------------------------------
-
 local function occurs_check(v, typ, subst)
 	if v:equals(typ) then
 		return true
@@ -272,7 +262,7 @@ local function occurs_check(v, typ, subst)
 	return false
 end
 
-local function unify_variable(v, typ, subst)
+local unify_variable = function(v, typ, subst)
 	if subst[v.name] then
 		return Unify(subst[v.name], typ, subst)
 	end
@@ -313,7 +303,7 @@ function Unify(x, y, subst)
 	return nil
 end
 
-local function unify_equations(eqs)
+local unify_equations = function(eqs)
 	local subst = {}
 	for _, eq in ipairs(eqs) do
 		subst = Unify(eq.left, eq.right, subst)
@@ -326,6 +316,7 @@ end
 
 -- Apply unifier ------------------------------------------
 
+---@return Type|Func|nil
 local function apply_unifier(typ, subst)
 	if not subst then
 		return nil
@@ -349,8 +340,7 @@ local function apply_unifier(typ, subst)
 end
 
 -- Get final expression type after unification -----------------
-
-local function get_expression_type(typ, unifier)
+local get_expression_type = function(typ, unifier)
 	if not unifier then
 		return typ
 	end
