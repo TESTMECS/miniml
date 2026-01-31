@@ -55,11 +55,11 @@ function Compiler:compile(source)
 		table.insert(self.equations, e)
 	end
 	self.unifier = typing.unify_equations(self.equations)
-	print(vim.inspect(self.unifier))
+
 	local t = typing.get_expression_type(parsed.expr.typ, self.unifier)
 
 	if self.interactive then
-		print(string.format("%s :: %s", parsed, vim.inspect(t)))
+		print(string.format("%s :: %s", parsed, t))
 	end
 
 	self.symtab[parsed.name] = t
