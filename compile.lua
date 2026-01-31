@@ -1,6 +1,5 @@
 local os = require("os")
 local io = require("io")
----@alias Parser table
 local parser = require("parser")
 local typing = require("typing")
 local exceptions = require("exceptions")
