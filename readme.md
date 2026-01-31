@@ -25,10 +25,7 @@ c:execute()
 - `compiler:execute()` 
     - generates a temporary C file, compiles it, and runs it.
 
-## TODO 
-- [ ] RECURSION
-- [ ] PRETTY PRINTING TYPE INFO
-- [ ] MORE EXAMPLES. 
+
 
 
 
