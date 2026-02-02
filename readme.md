@@ -2,7 +2,7 @@
 - MiniML interpreter generating C code
 # Credits
 [@hellerve - Python Implementation](https://github.com/hellerve-pl-experiments/microml)
-- Essentially a copy of the idea but in Lua.
+- Essentially a copy of the idea but in Lua to learn about ML type inference.
 ## Deps 
 - Lpeg - lexer.lua
 - GCC - compile.lua
