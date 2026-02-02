@@ -1,5 +1,6 @@
-## TODO 
-- [x] Annotations
-- [x] PRETTY PRINTING TYPE INFO
-- [ ] RECURSION
-- [ ] MORE EXAMPLES. 
+# Lexer
+- [ ] Comments
+- [ ] Unary Minus
+
+# Parser
+- [ ] recursion 
