@@ -1,0 +1,3 @@
+add = lambda a b -> a + b
+multiply = lambda x y -> x * y
+main = lambda -> print(add(5, multiply(2, 3)))

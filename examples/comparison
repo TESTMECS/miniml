@@ -1,0 +1,4 @@
+equals = lambda a b -> if a == b then 1 else 0
+notequals = lambda a b -> if a != b then 1 else 0
+lessthan = lambda a b -> if a < b then 1 else 0
+main = lambda -> print(equals(5, 5) + notequals(3, 4))

@@ -1,0 +1,3 @@
+ispositive = lambda n -> if n > 0 then 1 else 0
+absval = lambda n -> if n < 0 then n else n
+main = lambda -> print(ispositive(absval(5)))
