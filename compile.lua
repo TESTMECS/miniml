@@ -36,9 +36,23 @@ end
 -- Compile source, assign types, generate equations, unify
 Compiler.compile = function(self, source)
 	local parsed, pos = self.p:parse(source, self.interactive)
-
 	if self.symtab[parsed.name] then
 		print(string.format("Warning! Redefining %s!", parsed.name))
+	end
+	print(vim.inspect(parsed))
+	-- Pre-register function names with fresh type variable for recursion.
+	--[[ [WARNING] This is super unsound but it works for the simple `fib` example.
+		 Interestingly, some examples will fail to typecheck like:
+			 f = lambda x -> f x x (* Accidently Polymorphic recursion *)
+		 or the scheme will happily type check as f :: a -> b.
+		 Boxed types will leak (Not apart of this example implementation)
+			 let r = ref []
+			 r := [1] (*and*) r := ["x"] (*will both be accepted*)
+		 Would be interesting to see other examples that fail as a result!
+		 This is just an example implementation so leaving it as it is for now!
+	-- ]]
+	if not self.symtab[parsed.name] then
+		self.symtab[parsed.name] = typing.make_type_var()
 	end
 
 	-- assign types
@@ -62,11 +76,17 @@ Compiler.compile = function(self, source)
 	if self.interactive then
 		local name
 		if t.argtypes then
-			name = string.format("(lambda %s -> %s)", table.concat(t.argtypes, ", "), t.rettype.name or "")
+			local argstr = {}
+			for i, argtype in ipairs(t.argtypes) do
+				argstr[i] = tostring(argtype)
+			end
+			name = string.format("(lambda %s -> %s)", table.concat(argstr, ", "), tostring(t.rettype))
 		elseif t.rettype then
-			name = string.format("%s", t.rettype.name)
+			name = string.format("%s", tostring(t.rettype))
 		elseif t.name then
-			name = string.format("%s", t.name)
+			name = string.format("%s", tostring(t))
+		else
+			name = tostring(t)
 		end
 		print(string.format("%s :: %s\n", parsed, name))
 		-- print(vim.inspect(t))

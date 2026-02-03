@@ -340,6 +340,7 @@ return {
 	Bool = Bool,
 	Func = Func,
 	TypeVar = TypeVar,
+	make_type_var = make_type_var,
 	assign_typenames = assign_typenames,
 	generate_equations = generate_equations,
 	unify_equations = unify_equations,
