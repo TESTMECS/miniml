@@ -51,9 +51,9 @@ Compiler.compile = function(self, source)
 		 Would be interesting to see other examples that fail as a result!
 		 This is just an example implementation so leaving it as it is for now!
 	-- ]]
-	if not self.symtab[parsed.name] then
-		self.symtab[parsed.name] = typing.make_type_var()
-	end
+	-- if not self.symtab[parsed.name] then
+	-- 	self.symtab[parsed.name] = typing.make_type_var()
+	-- end
 
 	-- assign types
 	local st = typing.assign_typenames(parsed.expr, self.symtab)
