@@ -38,6 +38,7 @@ Int.__index = Int
 Int.new = function(v)
 	return setmetatable({ value = v }, Int)
 end
+Int.__tostring = Val.__tostring
 Int.eval = function(self)
 	return math.floor(self.value)
 end
@@ -49,6 +50,7 @@ Bool.__index = Bool
 Bool.new = function(v)
 	return setmetatable({ value = v }, Bool)
 end
+Bool.__tostring = Val.__tostring
 Bool.eval = function(self)
 	return not not self.value
 end
@@ -240,20 +242,83 @@ Lambda.compile = function(self, unifier)
 
 	return string.format("(%s) {\n%s\n}", table.concat(args, ", "), table.concat(body_lines, "\n"))
 end
+-- Let -----------------------------------------------------
+---@class Let:Node
+---@field name string
+---@field expr Node
+---@field body Node
+local Let = setmetatable({}, Node)
+Let.__index = Let
+Let.new = function(name, expr, body)
+	return setmetatable({
+		name = name,
+		expr = expr,
+		body = body,
+		children = { expr, body },
+	}, Let)
+end
+Let.__tostring = function(self)
+	return ("(let %s = %s in %s)"):format(self.name, self.expr, self.body)
+end
+Let.eval = function(self, env)
+	local new_env = {}
+	for k, v in pairs(env) do
+		new_env[k] = v
+	end
+	new_env[self.name] = self.expr:eval(env)
+	return self.body:eval(new_env)
+end
+Let.compile = function(self, unifier)
+	return self.body:compile(unifier)
+end
+-- LetRec --------------------------------------------------
+---@class LetRec:Node
+---@field name string
+---@field expr Node
+---@field body Node
+local LetRec = setmetatable({}, Node)
+LetRec.__index = LetRec
+LetRec.new = function(name, expr, body)
+	return setmetatable({
+		name = name,
+		expr = expr,
+		body = body,
+		children = { expr, body },
+	}, LetRec)
+end
+LetRec.__tostring = function(self)
+	return ("(let rec %s = %s in %s)"):format(self.name, self.expr, self.body)
+end
+LetRec.eval = function(self, env)
+	local new_env = {}
+	for k, v in pairs(env) do
+		new_env[k] = v
+	end
+	new_env[self.name] = self.expr
+	return self.body:eval(new_env)
+end
+LetRec.compile = function(self, unifier)
+	return self.body:compile(unifier)
+end
 -- Decl ----------------------------------------------------
 ---@class Decl:Node
 ---@field name string
 ---@field expr Node
+---@field recursive boolean
 local Decl = setmetatable({}, Node)
 Decl.__index = Decl
-Decl.new = function(name, expr)
+Decl.new = function(name, expr, recursive)
 	return setmetatable({
 		name = name,
 		expr = expr,
+		recursive = recursive or false,
 		children = { expr },
 	}, Decl)
 end
 Decl.__tostring = function(self)
+	if self.recursive then
+		return ("let rec %s = %s"):format(self.name, self.expr)
+	end
 	return ("%s = %s"):format(self.name, self.expr)
 end
 Decl.eval = function(self, env)
@@ -261,7 +326,6 @@ Decl.eval = function(self, env)
 end
 Decl.compile = function(self, unifier)
 	if getmetatable(self.expr) == Lambda then
-		-- Generate a proper C function with arguments
 		local args = {}
 		for i, name in ipairs(self.expr.argnames) do
 			args[i] = "int " .. name
@@ -275,7 +339,6 @@ Decl.compile = function(self, unifier)
 		end
 		return ("int %s(%s) {\n    return %s;\n}"):format(self.name, argstr, self.expr.expr:compile(unifier))
 	else
-		-- Simple function with no arguments
 		return ("int %s() {\n    return %s;\n}"):format(self.name, self.expr:compile(unifier))
 	end
 end
@@ -289,5 +352,7 @@ return {
 	App = App,
 	If = If,
 	Lambda = Lambda,
+	Let = Let,
+	LetRec = LetRec,
 	Decl = Decl,
 }

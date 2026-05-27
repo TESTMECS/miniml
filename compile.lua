@@ -39,21 +39,15 @@ Compiler.compile = function(self, source)
 	if self.symtab[parsed.name] then
 		print(string.format("Warning! Redefining %s!", parsed.name))
 	end
-	print(vim.inspect(parsed))
-	-- Pre-register function names with fresh type variable for recursion.
-	--[[ [WARNING] This is super unsound but it works for the simple `fib` example.
-		 Interestingly, some examples will fail to typecheck like:
-			 f = lambda x -> f x x (* Accidently Polymorphic recursion *)
-		 or the scheme will happily type check as f :: a -> b.
-		 Boxed types will leak (Not apart of this example implementation)
-			 let r = ref []
-			 r := [1] (*and*) r := ["x"] (*will both be accepted*)
-		 Would be interesting to see other examples that fail as a result!
-		 This is just an example implementation so leaving it as it is for now!
-	-- ]]
-	-- if not self.symtab[parsed.name] then
-	-- 	self.symtab[parsed.name] = typing.make_type_var()
-	-- end
+	print(parsed)
+	-- For recursive declarations, pre-register the name with a fresh type
+	-- variable so the body can reference itself during type inference.
+	-- This is sound for HM without let-polymorphism: the fresh variable
+	-- gets constrained by equations from the body, and the occurs check
+	-- prevents infinite types.
+	if parsed.recursive and not self.symtab[parsed.name] then
+		self.symtab[parsed.name] = typing.make_type_var()
+	end
 
 	-- assign types
 	local st = typing.assign_typenames(parsed.expr, self.symtab)

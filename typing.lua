@@ -28,6 +28,7 @@ Int.__index = Int
 Int.new = function()
 	return setmetatable({}, Int)
 end
+Int.__tostring = Type.__tostring
 -- Bool ----------------------------------------------------
 ---@class Bool: Type
 ---@field new fun(): Bool
@@ -37,6 +38,7 @@ Bool.__index = Bool
 Bool.new = function()
 	return setmetatable({}, Bool)
 end
+Bool.__tostring = Type.__tostring
 -- Func ----------------------------------------------------
 ---@class Func: Type
 ---@field argtypes Type[]
@@ -148,6 +150,24 @@ local function assign_typenames(node, symtab)
 		end
 		-- Assign types to children
 		assign_typenames(node.expr, merged)
+	elseif getmetatable(node) == ast.Let then
+		node.typ = make_type_var()
+		assign_typenames(node.expr, symtab)
+		local local_symtab = {}
+		for k, v in pairs(symtab) do
+			local_symtab[k] = v
+		end
+		local_symtab[node.name] = node.expr.typ
+		assign_typenames(node.body, local_symtab)
+	elseif getmetatable(node) == ast.LetRec then
+		node.typ = make_type_var()
+		local local_symtab = {}
+		for k, v in pairs(symtab) do
+			local_symtab[k] = v
+		end
+		local_symtab[node.name] = make_type_var()
+		assign_typenames(node.expr, local_symtab)
+		assign_typenames(node.body, local_symtab)
 	elseif getmetatable(node) == ast.Op or getmetatable(node) == ast.If or getmetatable(node) == ast.App then
 		-- If, App, or Op
 		-- Generate a new type variable
@@ -229,10 +249,15 @@ local function generate_equations(node, eqs)
 			generate_equations(c, eqs)
 		end)
 		local args = {}
-		for _, n in ipairs(node.argnames) do
-			table.insert(args, node.argtypes[n])
+		for i, _ in ipairs(node.argnames) do
+			table.insert(args, node.argtypes[i])
 		end
 		table.insert(eqs, Equation.new(node.typ, Func.new(args, node.expr.typ), node))
+	elseif getmetatable(node) == ast.Let or getmetatable(node) == ast.LetRec then
+		node:visit_children(function(c)
+			generate_equations(c, eqs)
+		end)
+		table.insert(eqs, Equation.new(node.typ, node.body.typ, node))
 	end
 	return eqs
 end

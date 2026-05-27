@@ -71,9 +71,17 @@ Parser.match = function(self, typ)
 	self:error(string.format("Expected %s, but found %s at %s", typ, self.token.typ, pos))
 end
 
----@description Parse a declaration name '=' expr
+---@description Parse a declaration: [let [rec]] name '=' expr
 ---@return Decl
 Parser.decl = function(self)
+	local is_rec = false
+	if self.token.typ == lexer.LET then
+		self:next()
+		if self.token.typ == lexer.REC then
+			is_rec = true
+			self:next()
+		end
+	end
 	local name = self:match(lexer.ID)
 	local argnames = {}
 	while self.token.typ == lexer.ID do
@@ -83,9 +91,9 @@ Parser.decl = function(self)
 	self:match(lexer.EQ)
 	local expr = self:expr()
 	if #argnames > 0 then
-		return ast.Decl.new(name, ast.Lambda.new(argnames, expr))
+		return ast.Decl.new(name, ast.Lambda.new(argnames, expr), is_rec)
 	end
-	return ast.Decl.new(name, expr)
+	return ast.Decl.new(name, expr, is_rec)
 end
 
 ---@description lhs op rhs
@@ -140,6 +148,10 @@ Parser.expr_component = function(self)
 		return self:lambdaexpr()
 	end
 
+	if tok.typ == lexer.LET then
+		return self:letexpr()
+	end
+
 	self:error("We don’t support " .. tostring(tok.typ) .. " yet!")
 end
 
@@ -167,6 +179,30 @@ Parser.lambdaexpr = function(self)
 	self:match(lexer.ARROW)
 	local expr = self:expr()
 	return ast.Lambda.new(argnames, expr)
+end
+
+---@return Let | LetRec
+Parser.letexpr = function(self)
+	self:match(lexer.LET)
+	local is_rec = self.token.typ == lexer.REC
+	if is_rec then self:next() end
+	local name = self:match(lexer.ID)
+	local argnames = {}
+	while self.token.typ == lexer.ID do
+		table.insert(argnames, self.token.val)
+		self:next()
+	end
+	self:match(lexer.EQ)
+	local expr = self:expr()
+	if #argnames > 0 then
+		expr = ast.Lambda.new(argnames, expr)
+	end
+	self:match(lexer.IN)
+	local body = self:expr()
+	if is_rec then
+		return ast.LetRec.new(name, expr, body)
+	end
+	return ast.Let.new(name, expr, body)
 end
 
 ---@return App
