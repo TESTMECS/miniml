@@ -1,12 +1,16 @@
 # MiniML
 - MiniML interpreter generating C code
+
 # Credits
+
 [@hellerve - Python Implementation](https://github.com/hellerve-pl-experiments/microml)
 - Essentially a copy of the idea but in Lua to learn about ML type inference.
+
 ## Deps 
 - Lpeg - lexer.lua
 - GCC - compile.lua
 - Ran with `LuaJIT 2.1.1741730670` .
+
 ## Example
 ```lua
 local compiler = require("compile")
@@ -15,6 +19,11 @@ c:compile("x y z = if y < z then y * z else y / z")
 c:compile("main = lambda -> print(x(1,2))")
 print("Executing...")
 c:execute()
+```
+## NEW Recursive
+```lua
+let rec fib = lambda n -> if n == 0 then 0 else if n == 1 then 1 else fib(n - 1) + fib(n - 2)
+main = lambda -> print(fib(10))
 ```
 ## Pipeline
 - `compiler:new()` 
